@@ -1,6 +1,9 @@
 TARGET=avr-atmega128rfa1
 MCU=atmega128rfa1
 WEBDIR=cat_feeder
+#PCB = LIGHT_SW_PCB_R1=1
+PCB = BLIND_PCB_R0=1
+#PCB = XBEE_PCB_R1=1
 
 ifndef WEBDIR
  OUTFILE=webserver6-$(TARGET)
@@ -10,7 +13,7 @@ endif
 
 $(OUTFILE).hex: all
 all:
-	${MAKE} -f Makefile.webserver TARGET=$(TARGET) NOAVRSIZE=1 webserver6.elf   
+	${MAKE} -f Makefile.webserver TARGET=$(TARGET) DEFINES=$(PCB) NOAVRSIZE=1 webserver6.elf   
 #can't just rename, webserver6 may be open in debugger
 	@if [ $(OUTFILE) != "webserver6" ]; then cp webserver6.elf $(OUTFILE).elf;fi
 	avr-objcopy -O ihex -R .eeprom -R .fuse -R .signature $(OUTFILE).elf $(OUTFILE).hex
@@ -23,6 +26,5 @@ prog: $(OUTFILE).hex
 
 clean:
 	${MAKE} -f Makefile.webserver TARGET=$(TARGET) clean
-	rm ../../platform/avr-raven/apps/raven-webserver/httpd-fsdata.c
 	rm symbols.c symbols.h webserver6.elf $(OUTFILE).elf  $(OUTFILE).hex
 	rm -rf obj_avr-raven

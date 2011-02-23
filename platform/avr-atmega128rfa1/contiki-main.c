@@ -389,8 +389,16 @@ extern uint16_t __bss_end;
   initialize();
 
   /* NB: PORTE1 conflicts with UART0 */
-  DDRE|=(1<<DDE1);  //set led pin to output
-  PORTE&=~(1<<PE1); //and low to turn led off
+#if XBEE_PCB_R1
+  DDRE |= _BV(PE1);  //set led pin to output
+  PORTE &= ~(PE1); //and low to turn led off
+#elif LIGHT_SW_PCB_R1
+  DDRF |= _BV(PF0);  //set led pin to output
+  PORTF &= ~_BV(PF0); //and low to turn led off
+#elif BLIND_PCB_R0
+  DDRF |= _BV(PF5);  //set led pin to output
+  PORTF &= ~_BV(PF5); //and low to turn led off
+#endif
 
   while(1) {
      process_run();
@@ -398,7 +406,13 @@ extern uint16_t __bss_end;
     /* Turn off LED after a while */
     if (ledtimer) {
       if (--ledtimer==0) {
-         PORTE&=~(1<<PE1);
+#if XBEE_PCB_PCB_R1
+	PORTE &= ~_BV(PE1);
+#elif LIGHT_SW_PCB_R1
+	PORTF &= ~_BV(PF0);
+#elif BLIND_PCB_R0
+	PORTF &= ~_BV(PF5);
+#endif
     /* Currently LED was turned on by received ping; ping the other way for testing */
         extern void raven_ping6(void);         
         raven_ping6(); //ping back
