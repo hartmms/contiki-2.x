@@ -355,6 +355,7 @@ const char httpd_indexfn [] HTTPD_STRING_ATTR = "/index.html";
 const char httpd_404fn   [] HTTPD_STRING_ATTR = "/404.html";
 const char httpd_404notf [] HTTPD_STRING_ATTR = "404 Not found";
 const char httpd_200ok   [] HTTPD_STRING_ATTR = "200 OK";
+
 static
 PT_THREAD(handle_output(struct httpd_state *s))
 {
@@ -405,20 +406,20 @@ PT_THREAD(handle_input(struct httpd_state *s))
   if(s->inputbuf[1] == ISO_space) {
     httpd_strcpy(s->filename, httpd_indexfn);
   } else {
-    s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
-    strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
-{
-    /* Look for ?, if found strip file name and send any following text to the LCD */
-    uint8_t i;
-    for (i=0;i<sizeof(s->inputbuf);i++) {
-      if (s->inputbuf[i]=='?') {
-        raven_lcd_show_text(&s->inputbuf[i]);
-        if (i<sizeof(s->filename)) s->filename[i]=0;
- //     s->inputbuf[i]=0; //allow multiple beeps with multiple ?'s
+#if HTTPD_CONF_PASS_QUERY_STRING
+/* Query string is left in the buffer until zeroed by the application! */
+{uint8_t i;
+    for (i=0;i<sizeof(s->filename)+1;i++) {
+      if (s->inputbuf[i]==ISO_space) break;
+      if (s->inputbuf[i]==ISO_qmark) {
+         s->inputbuf[i]=0;
+         strncpy(httpd_query,&s->inputbuf[i+1],sizeof(httpd_query));
       }
-      if (s->inputbuf[i]==0) break;
     }
 }
+#endif
+    s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
+    strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
   }
 
   webserver_log_file(&uip_conn->ripaddr, s->filename);
