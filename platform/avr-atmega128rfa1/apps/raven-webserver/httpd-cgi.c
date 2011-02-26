@@ -79,6 +79,7 @@ static const char sensor_name[] HTTPD_STRING_ATTR = "sensors";
 static const char   adrs_name[] HTTPD_STRING_ATTR = "addresses";
 static const char   nbrs_name[] HTTPD_STRING_ATTR = "neighbors";
 static const char   rtes_name[] HTTPD_STRING_ATTR = "routes";
+static const char    cat_name[] HTTPD_STRING_ATTR = "cat_feeder";
 
 /*Process states for processes cgi*/
 static const char      closed[] HTTPD_STRING_ATTR = "CLOSED";
@@ -512,6 +513,36 @@ PT_THREAD(sensor_readings(struct httpd_state *s, char *ptr))
   
   PSOCK_END(&s->sout);
 }
+
+/*---------------------------------------------------------------------------*/	
+static unsigned short
+make_cat_feeder(void *p) {
+  uint16_t numprinted;
+  // feed them selected, so operate motor
+   
+  // set time
+
+
+  // write new mac
+  if () {
+    eeprom_write();
+  }
+
+
+  return numprinted;
+    
+}
+/*---------------------------------------------------------------------------*/
+static
+PT_THREAD(cat_feeder(struct httpd_state *s, char *ptr))
+{
+  PSOCK_BEGIN(&s->sout);
+
+  PSOCK_GENERATOR_SEND(&s->sout, make_cat_feeder, s->u.ptr);  
+  
+  PSOCK_END(&s->sout);
+}
+
 /*---------------------------------------------------------------------------*/
 void
 httpd_cgi_add(struct httpd_cgi_call *c)
@@ -537,6 +568,7 @@ HTTPD_CGI_CALL(   adrs,   adrs_name, addresses      );
 HTTPD_CGI_CALL(   nbrs,   nbrs_name, neighbors      );
 HTTPD_CGI_CALL(   rtes,   rtes_name, routes         );
 HTTPD_CGI_CALL(sensors, sensor_name, sensor_readings);
+HTTPD_CGI_CALL(    cat,    cat_name, cat_feeder     );
 
 void
 httpd_cgi_init(void)
@@ -549,6 +581,7 @@ httpd_cgi_init(void)
   httpd_cgi_add(   &adrs);
   httpd_cgi_add(   &nbrs);
   httpd_cgi_add(   &rtes);
+  httpd_cgi_add(    &cat);
   httpd_cgi_add(&sensors);
 }
 /*---------------------------------------------------------------------------*/

@@ -1,24 +1,22 @@
 %!: /header.html
 
-<form action="cat.shtml" method="get">
+<form name="feedem" action="cat_feeder" method="get">
+    <input type=hidden name=feed value="1">
     <input type="submit" value="Feed Them Now"> 
 </form>
-
-<form action="cat.shtml" method="get">
+<hr>
+<form name="setting_form" action="cat_feeder" method="get" onSubmit="return checkSettings()">
     <p>Time of day to feed (hh:mm in 24 hour time) 
-    <input type="text" name="time" value="" 
-        size="15" maxlength="40"/></p>
+    <input type="text" name="time" value="" size="15" maxlength="40"/></p>
     <p>Length of time (in seconds) to operate motor 
-    <input type="text" name="motor_time" value="" 
-        size="2" maxlength="2"/></p>
+    <input type="text" name="motor_time" value="" size="2" maxlength="2"/></p>
     <p><input type="submit" value="Save Settings"/></p>
 </form>
 <hr>
-<form action="cat.shtml" method="get">
+<form name="mac_addr_form" action="cat_feeder" method="get" onSubmit="checkMac();">
     <p>MAC address
-    <input type="text" id="mac" name="mac" value="" 
-        size="30" maxlength="40"/>
-    <input type="submit" value="Write it" onClick="return confirmPost(document.getElementById('mac').value)" /></p>
+    <input type="text" name="mac_addr" value="" size="30" maxlength="40">
+    <input type="submit"></p>
 </form>
 
 %!: /footer.html
