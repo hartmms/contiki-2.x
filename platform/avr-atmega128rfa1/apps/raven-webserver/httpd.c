@@ -355,7 +355,6 @@ const char httpd_indexfn [] HTTPD_STRING_ATTR = "/index.html";
 const char httpd_404fn   [] HTTPD_STRING_ATTR = "/404.html";
 const char httpd_404notf [] HTTPD_STRING_ATTR = "404 Not found";
 const char httpd_200ok   [] HTTPD_STRING_ATTR = "200 OK";
-
 static
 PT_THREAD(handle_output(struct httpd_state *s))
 {
@@ -406,9 +405,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
   if(s->inputbuf[1] == ISO_space) {
     httpd_strcpy(s->filename, httpd_indexfn);
   } else {
-#if HTTPD_CONF_PASS_QUERY_STRING
-/* Query string is left in the buffer until zeroed by the application! */
-{uint8_t i;
+    uint8_t i;
     for (i=0;i<sizeof(s->filename)+1;i++) {
       if (s->inputbuf[i]==ISO_space) break;
       if (s->inputbuf[i]==ISO_qmark) {
@@ -416,8 +413,6 @@ PT_THREAD(handle_input(struct httpd_state *s))
          strncpy(httpd_query,&s->inputbuf[i+1],sizeof(httpd_query));
       }
     }
-}
-#endif
     s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
     strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
   }
