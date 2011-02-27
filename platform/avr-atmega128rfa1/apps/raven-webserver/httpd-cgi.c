@@ -558,7 +558,7 @@ make_cat_feeder_form(void *p) {
 
   numprinted +=  httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted,
 				httpd_cat_form,
-				//				sprintf("%s:%s", rtc.hour, rtc.minute),
+				//sprintf("%s:%s", rtc.hour, rtc.minute),
 				"ff:ff",
 				feed_time,
 				motor_time,
@@ -580,25 +580,42 @@ PT_THREAD(cat_feeder_form(struct httpd_state *s, char *ptr))
 static unsigned short
 make_cat_feeder(void *p) {
   uint16_t numprinted;
-
- //http://192.168.0.69:8080/cat?time=1%3A30
+  uint8_t x;
+  char * min, sec, str_addr;
+  //http://192.168.0.69:8080/cat?time=1%3A30
 
   // feed them selected, so operate motor
   if (strncmp (httpd_query,"feed",4) == 0) {
     //send pulse to motor
+    //run_motor(secs);
   }
 
   // set time
   if (strncmp (httpd_query,"time",4) == 0) {
+    min = strchr(httpd_query, '=') + 1;
+    sec = strchr(httpd_query, '%') + 4;
     //set time
+  }
+
+  // set feed_time
+  if (strncmp (httpd_query,"feed_time",9) == 0) {
+    min = strchr(httpd_query, '=') + 1;
+    sec = strchr(httpd_query, '%') + 4;
+    //set feed_time
   }
   
   if (strncmp (httpd_query,"motor_time",10) == 0) {
+    sec = strchr(httpd_query, '=') + 1;
     //set motor_time
   }
 
   // write new mac
   if (strncmp(httpd_query, "mac_addr", 8) == 0) {
+    str_addr = strchr(httpd_query, '=') + 1;
+    for(x=httpd_query-str_addr; x<=sizeof(httpd_query); x++) {
+      //
+      
+    }
     //eeprom_write();
   }
   // print/include header
@@ -659,6 +676,7 @@ httpd_cgi_init(void)
   httpd_cgi_add(   &nbrs);
   httpd_cgi_add(   &rtes);
   httpd_cgi_add(    &cat);
+  httpd_cgi_add( &cat_fm);
   httpd_cgi_add(&sensors);
 }
 /*---------------------------------------------------------------------------*/

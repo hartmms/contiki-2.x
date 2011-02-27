@@ -26,5 +26,5 @@ prog: $(OUTFILE).hex
 clean:
 	${MAKE} -f Makefile.webserver TARGET=$(TARGET) clean
 	rm /media/av/ep/6loWpan/contiki-2.x/platform/avr-atmega128rfa1/apps/raven-webserver/httpd-fsdata.c
-	rm symbols.c symbols.h webserver6.elf $(OUTFILE).elf  $(OUTFILE).hex
+	rm symbols.c symbols.h webserver6.elf $(OUTFILE).elf  *.hex
 	rm -rf obj_avr-raven

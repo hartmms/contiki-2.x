@@ -11,15 +11,6 @@ static volatile uint8_t scount;
 volatile unsigned long seconds;
 long sleepseconds;
 
-typedef struct{ 
-  unsigned char second;   //enter the current time, date, month, and year
-  unsigned char minute;
-  unsigned char hour;                                     
-  unsigned char date;       
-  unsigned char month;
-  unsigned int year;      
-}rtc_time;
-
 rtc_time rtc;      
                       
 
