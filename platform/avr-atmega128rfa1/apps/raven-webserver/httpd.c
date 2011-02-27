@@ -102,6 +102,7 @@ MEMB(conns, struct httpd_state, CONNS);
 #define ISO_period  0x2e
 #define ISO_slash   0x2f
 #define ISO_colon   0x3a
+#define ISO_qmark   0x3f
 
 /*---------------------------------------------------------------------------*/
 static unsigned short
