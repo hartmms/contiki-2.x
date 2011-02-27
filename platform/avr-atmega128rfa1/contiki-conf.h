@@ -48,7 +48,7 @@
 #define F_CPU          8000000UL
 #endif
 #include <stdint.h>
-#define HTTPD_CONF_PASS_QUERY_STRING 20
+#define HTTPD_CONF_PASS_QUERY_STRING 40
 
 typedef int32_t s32_t;
 typedef unsigned char u8_t;

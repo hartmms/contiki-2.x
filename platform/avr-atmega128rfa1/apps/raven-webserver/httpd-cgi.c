@@ -53,6 +53,8 @@
 #include "httpd-fsdata.h"
 #include "lib/petsciiconv.h"
 
+#include "clock-avr.h"
+
 #include "sensors.h"
 
 #define DEBUGLOGIC 0        //See httpd.c, if 1 must also set it there!
@@ -69,6 +71,9 @@ extern char httpd_query[HTTPD_CONF_PASS_QUERY_STRING];
 #endif
 
 static struct httpd_cgi_call *calls = NULL;
+
+// ZZZ this isn't working
+//extern rtc_time rtc;
 
 /*cgi function names*/
 #if HTTPD_FS_STATISTICS
@@ -520,12 +525,17 @@ PT_THREAD(sensor_readings(struct httpd_state *s, char *ptr))
 static const char httpd_cat_form[] HTTPD_STRING_ATTR = "\
 <form name=\"feedem\" action=\"cat_feeder\" method=\"get\">\
 <input type=hidden name=feed value=\"1\">\
-<input type=\"submit\" value=\"Feed Them Now\">\ 
+<input type=\"submit\" value=\"Feed Them Now\">\
 </form>\
 <hr>\
-<form name=\"time\" action=\"cat_feeder\" method=\"get\" onSubmit=\"return checkTime()\">\
-Time of day to feed (hh:mm in 24 hour time)\
+<form name=\"time_form\" action=\"cat_feeder\" method=\"get\" onSubmit=\"return checkTime(document.time_form.time.value)\">\
+Set current time (hh:mm in 24 hour time)\
 <input type=\"text\" name=\"time\" value=\"%s\" size=\"15\" maxlength=\"40\"/>\
+<input type=\"submit\" value=\"Save\"/>\
+</form>\
+<form name=\"feed_time_form\" action=\"cat_feeder\" method=\"get\" onSubmit=\"return checkTime(document.feed_time_form.feed_time.value)\">\
+Time of day to feed (hh:mm in 24 hour time)\
+<input type=\"text\" name=\"feed_time\" value=\"%s\" size=\"15\" maxlength=\"40\"/>\
 <input type=\"submit\" value=\"Save\"/>\
 </form>\
 <form name=\"motor_time_form\" action=\"cat_feeder\" method=\"get\" onSubmit=\"return checkMotor()\">\
@@ -542,15 +552,18 @@ Length of time (in seconds) to operate motor\
 static unsigned short
 make_cat_feeder_form(void *p) {
   uint16_t numprinted;
-  char time[5];
+  char feed_time[5];
   char motor_time;
   char mac_addr[24];
 
   numprinted +=  httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted,
 				httpd_cat_form,
-				time,
+				//				sprintf("%s:%s", rtc.hour, rtc.minute),
+				"ff:ff",
+				feed_time,
 				motor_time,
 				mac_addr);
+  return numprinted;
 }
 /*---------------------------------------------------------------------------*/
 static

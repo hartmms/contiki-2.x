@@ -38,6 +38,16 @@
 
 #elif defined (__AVR_ATmega128RFA1__) && 0
 
+typedef struct{ 
+  unsigned char second;   //enter the current time, date, month, and year
+  unsigned char minute;
+  unsigned char hour;                                     
+  unsigned char date;       
+  unsigned char month;
+  unsigned int year;      
+} rtc_time;
+
+
 #define AVR_OUTPUT_COMPARE_INT TIMER0_COMPA_vect
 #define OCRSetup() \
   /* Select internal clock */ \

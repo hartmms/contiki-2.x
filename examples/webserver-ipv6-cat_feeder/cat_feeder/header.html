@@ -2,6 +2,7 @@
 <html><head><title>The Hartman's IPv6 cat feeder!</title>
 <link rel="stylesheet" type="text/css" href="/style.css"><link rel="icon" href="wifi.png" type="image/png">
 <script>
+
 function checkMac()
 {
 var valid_addr=/^[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$/;
@@ -19,10 +20,11 @@ alert("Please enter a valid 8 octet number for the mac address");
 event.returnValue=false;
 }
 }
-function checkTime()
+
+function checkTime(time_from_form)
 {
 var valid_time=/^[0-9]{1,2}:[0-9]{2}$/;
-if (!valid_time.test(document.time_form.time.value))
+if (!valid_time.test(time_from_form))
 {
 alert("Please enter a valid time in xx:xx format");
 event.returnValue=false;
@@ -32,6 +34,7 @@ else
 event.returnValue=true;
 }
 }
+
 function checkMotor()
 {
 var valid_motor_time=/^[0-9]$/;
@@ -45,6 +48,7 @@ else
 event.returnValue=true;
 }
 }
+
 </script>
 </head>
 <body bgcolor="#474747" text="black">
