@@ -5,18 +5,19 @@
     <input type="submit" value="Feed Them Now"> 
 </form>
 <hr>
-<form name="setting_form" action="cat_feeder" method="get" onSubmit="return checkSettings()">
+<form name="time" action="cat_feeder" method="get" onSubmit="return checkSettings()">
     <p>Time of day to feed (hh:mm in 24 hour time) 
     <input type="text" name="time" value="" size="15" maxlength="40"/></p>
+    <input type="submit" value="Save"/></p>
     <p>Length of time (in seconds) to operate motor 
     <input type="text" name="motor_time" value="" size="2" maxlength="2"/></p>
-    <p><input type="submit" value="Save Settings"/></p>
+    <input type="submit" value="Save"/></p>
 </form>
 <hr>
 <form name="mac_addr_form" action="cat_feeder" method="get" onSubmit="checkMac();">
     <p>MAC address
     <input type="text" name="mac_addr" value="" size="30" maxlength="40">
-    <input type="submit"></p>
+    <input type="submit" value="Save"></p>
 </form>
 
 %!: /footer.html

@@ -518,17 +518,27 @@ PT_THREAD(sensor_readings(struct httpd_state *s, char *ptr))
 static unsigned short
 make_cat_feeder(void *p) {
   uint16_t numprinted;
+  //http://192.168.0.69:8080/cat?time=1%3A30
+
   // feed them selected, so operate motor
-   
-  // set time
-
-
-  // write new mac
-  if () {
-    eeprom_write();
+  if (strncmp (httpd_query,"feed",4) == 0) {
+    //send pulse to motor
   }
 
+  // set time
+  if (strncmp (httpd_query,"time",4) == 0) {
+    //set time
+  }
+  
+  if (strncmp (httpd_query,"motor_time",10) == 0) {
+    //set motor_time
+  }
 
+  // write new mac
+  if (strncmp(httpd_query, "mac_addr", 8) == 0) {
+    //eeprom_write();
+  }
+  //numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<br><br><a href=ttt.shtml?bbbbbbbb>Letcomputer move first</a>");
   return numprinted;
     
 }

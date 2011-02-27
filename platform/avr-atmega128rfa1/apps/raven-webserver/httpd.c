@@ -83,6 +83,7 @@ char TCPBUF[512];
 #else
 #define CONNS WEBSERVER_CONF_CGI_CONNS
 #endif /* WEBSERVER_CONF_CGI_CONNS */
+char httpd_query[HTTPD_CONF_PASS_QUERY_STRING];
 
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
@@ -351,7 +352,7 @@ PT_THREAD(send_headers(struct httpd_state *s, const char *statushdr))
   PSOCK_END(&s->sout);
 }
 /*---------------------------------------------------------------------------*/
-const char httpd_indexfn [] HTTPD_STRING_ATTR = "/index.html";
+const char httpd_indexfn [] HTTPD_STRING_ATTR = "/index.shtml";
 const char httpd_404fn   [] HTTPD_STRING_ATTR = "/404.html";
 const char httpd_404notf [] HTTPD_STRING_ATTR = "404 Not found";
 const char httpd_200ok   [] HTTPD_STRING_ATTR = "200 OK";
