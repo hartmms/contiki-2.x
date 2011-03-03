@@ -77,7 +77,7 @@ unsigned long clock_seconds(void);
 /* and theoretically can use TIMER2 with it to keep time. Else TIMER0 is used. */
 /* The sleep timer in raven-lcd.c also uses the crystal and adds a TIMER2 interrupt routine if not already define by clock.c */
 /* This has not been tested yet */
-#define AVR_CONF_USE32KCRYSTAL 0
+#define AVR_CONF_USE32KCRYSTAL 1
 
 /* COM port to be used for SLIP connection. Not tested on Raven */
 #define SLIP_PORT RS232_PORT_0

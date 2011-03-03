@@ -52,9 +52,8 @@
 #include "httpd-fs.h"
 #include "httpd-fsdata.h"
 #include "lib/petsciiconv.h"
-
-#include "clock-avr.h"
-
+#include "dev/clock-avr.h"
+#include "settings.h"
 #include "sensors.h"
 
 #define DEBUGLOGIC 0        //See httpd.c, if 1 must also set it there!
@@ -72,9 +71,6 @@ extern char httpd_query[HTTPD_CONF_PASS_QUERY_STRING];
 
 static struct httpd_cgi_call *calls = NULL;
 
-// ZZZ this isn't working
-//extern rtc_time rtc;
-
 /*cgi function names*/
 #if HTTPD_FS_STATISTICS
 static const char   file_name[] HTTPD_STRING_ATTR = "file-stats";
@@ -85,7 +81,7 @@ static const char sensor_name[] HTTPD_STRING_ATTR = "sensors";
 static const char   adrs_name[] HTTPD_STRING_ATTR = "addresses";
 static const char   nbrs_name[] HTTPD_STRING_ATTR = "neighbors";
 static const char   rtes_name[] HTTPD_STRING_ATTR = "routes";
-static const char cat_fm_name[] HTTPD_STRING_ATTR = "cat_feeder_form";
+static const char cat_fm_name[] HTTPD_STRING_ATTR = "cat_form";
 static const char    cat_name[] HTTPD_STRING_ATTR = "cat_feeder";
 
 /*Process states for processes cgi*/
@@ -523,55 +519,46 @@ PT_THREAD(sensor_readings(struct httpd_state *s, char *ptr))
 
 /*---------------------------------------------------------------------------*/	
 static const char httpd_cat_form[] HTTPD_STRING_ATTR = "\
-<form name=\"feedem\" action=\"cat_feeder\" method=\"get\">\
+<form name=\"feedem\" action=\"cat_feeder.shtml\" method=\"get\">\
 <input type=hidden name=feed value=\"1\">\
 <input type=\"submit\" value=\"Feed Them Now\">\
 </form>\
 <hr>\
-<form name=\"time_form\" action=\"cat_feeder\" method=\"get\" onSubmit=\"return checkTime(document.time_form.time.value)\">\
-Set current time (hh:mm in 24 hour time)\
-<input type=\"text\" name=\"time\" value=\"%s\" size=\"15\" maxlength=\"40\"/>\
-<input type=\"submit\" value=\"Save\"/>\
-</form>\
-<form name=\"feed_time_form\" action=\"cat_feeder\" method=\"get\" onSubmit=\"return checkTime(document.feed_time_form.feed_time.value)\">\
-Time of day to feed (hh:mm in 24 hour time)\
-<input type=\"text\" name=\"feed_time\" value=\"%s\" size=\"15\" maxlength=\"40\"/>\
-<input type=\"submit\" value=\"Save\"/>\
-</form>\
-<form name=\"motor_time_form\" action=\"cat_feeder\" method=\"get\" onSubmit=\"return checkMotor()\">\
+<form name=\"motor_time_form\" action=\"cat_feeder.shtml\" method=\"get\" onSubmit=\"return checkMotor()\">\
 Length of time (in seconds) to operate motor\
-<input type=\"text\" name=\"motor_time\" value=\"%s\" size=\"2\" maxlength=\"2\"/>\
+<input type=\"text\" name=\"motor_time\" value=\"%d\" size=\"2\" maxlength=\"2\"/>\
 <input type=\"submit\" value=\"Save\"/>\
 </form>\
 <hr>\
-<form name=\"mac_addr_form\" action=\"cat_feeder\" method=\"get\" onSubmit=\"checkMac();\">\
+<form name=\"mac_addr_form\" action=\"cat_feeder.shtml\" method=\"get\" onSubmit=\"checkMac();\">\
 <p>MAC address\
 <input type=\"text\" name=\"mac_addr\" value=\"%s\" size=\"30\" maxlength=\"40\">\
 <input type=\"submit\" value=\"Save\"></p>\
 </form>";
 static unsigned short
-make_cat_feeder_form(void *p) {
-  uint16_t numprinted;
-  char feed_time[5];
-  char motor_time;
-  char mac_addr[24];
+make_cat_form(void *p) {
+  uint16_t numprinted = 0;
+  uint8_t macptr[8];
 
-  numprinted +=  httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted,
-				httpd_cat_form,
-				//sprintf("%s:%s", rtc.hour, rtc.minute),
-				"ff:ff",
-				feed_time,
-				motor_time,
-				mac_addr);
+  settings_get(SETTINGS_KEY_EUI64, 0, (unsigned char*)macptr, 8);
+  numprinted =  httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted,
+			       httpd_cat_form,
+			       "3",
+			       //settings_get_uint8(SETTINGS_KEY_MOTOR_TIME, 0);
+			       // need to optimize
+			       sprintf("%x:%x:%x:%x:%x:%x:%x:%x", macptr[0], macptr[1], macptr[2], macptr[3], macptr[4], macptr[5], macptr[6], macptr[7])
+			       //"filler"
+			       );
+  
   return numprinted;
 }
 /*---------------------------------------------------------------------------*/
 static
-PT_THREAD(cat_feeder_form(struct httpd_state *s, char *ptr))
+PT_THREAD(cat_form(struct httpd_state *s, char *ptr))
 {
   PSOCK_BEGIN(&s->sout);
 
-  PSOCK_GENERATOR_SEND(&s->sout, make_cat_feeder_form, s->u.ptr);  
+  PSOCK_GENERATOR_SEND(&s->sout, make_cat_form, s->u.ptr);  
   
   PSOCK_END(&s->sout);
 }
@@ -579,49 +566,51 @@ PT_THREAD(cat_feeder_form(struct httpd_state *s, char *ptr))
 /*---------------------------------------------------------------------------*/	
 static unsigned short
 make_cat_feeder(void *p) {
-  uint16_t numprinted;
-  uint8_t x;
-  char * min, sec, str_addr;
-  //http://192.168.0.69:8080/cat?time=1%3A30
+  uint16_t numprinted = 0;
 
+  uint8_t mac[8], i;
+  char *ptr, hn,ln, *str_addr, *min, sec;
+  
+  //printf("Entered make_cat_feeder\n");
+  //printf("httpd_query: %s\n", httpd_query);
   // feed them selected, so operate motor
   if (strncmp (httpd_query,"feed",4) == 0) {
-    //send pulse to motor
-    //run_motor(secs);
+    //uint8_t sec = settings_get_uint8(SETTINGS_KEY_MOTOR_TIME, 0);
+    //run_motor(sec);
+    numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Commenced the feed</p>");
   }
 
-  // set time
-  if (strncmp (httpd_query,"time",4) == 0) {
-    min = strchr(httpd_query, '=') + 1;
-    sec = strchr(httpd_query, '%') + 4;
-    //set time
-  }
-
-  // set feed_time
-  if (strncmp (httpd_query,"feed_time",9) == 0) {
-    min = strchr(httpd_query, '=') + 1;
-    sec = strchr(httpd_query, '%') + 4;
-    //set feed_time
-  }
-  
   if (strncmp (httpd_query,"motor_time",10) == 0) {
     sec = strchr(httpd_query, '=') + 1;
     //set motor_time
+    //settings_set(SETTINGS_KEY_MOTOR_TIME, *sec-'0', 1);
+    numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Saved motor time</p>");
   }
 
   // write new mac
   if (strncmp(httpd_query, "mac_addr", 8) == 0) {
     str_addr = strchr(httpd_query, '=') + 1;
-    for(x=httpd_query-str_addr; x<=sizeof(httpd_query); x++) {
-      //
-      
+    for (ptr=str_addr,i=0;i<8;i++) {
+      if (*ptr>'9') {
+	hn=(*ptr&0xdf)-'A'+10;
+      } else {
+	hn=*ptr-'0';
+      }
+      ptr++;
+      if (*ptr>'9') {
+	ln=(*ptr&0xdf)-'A'+10;
+      } else {
+	ln=*ptr-'0';
+      }
+      mac[i] =(hn<<4) | ln;  //optionally mask ln, but if upper bits are set it will be wrong anyway
+      ptr++;
+      //settings_set(SETTINGS_KEY_EUI64, mac, 8);
     }
-    //eeprom_write();
+    numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted,  "<p>Saved Mac</p>");
   }
-  // print/include header
-  numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, 
-		       "Saved.");
-  // print/include footer
+
+  httpd_query[0]=0;  //zero the query string
+  //printf("Leaving make_cat_feeder, numprinted=%d\n", numprinted);
   return numprinted;
     
 }
@@ -661,8 +650,8 @@ HTTPD_CGI_CALL(   adrs,   adrs_name, addresses      );
 HTTPD_CGI_CALL(   nbrs,   nbrs_name, neighbors      );
 HTTPD_CGI_CALL(   rtes,   rtes_name, routes         );
 HTTPD_CGI_CALL(sensors, sensor_name, sensor_readings);
+HTTPD_CGI_CALL( cat_fm, cat_fm_name, cat_form       );
 HTTPD_CGI_CALL(    cat,    cat_name, cat_feeder     );
-HTTPD_CGI_CALL( cat_fm, cat_fm_name, cat_feeder_form);
 
 void
 httpd_cgi_init(void)

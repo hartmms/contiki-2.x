@@ -11,9 +11,6 @@ static volatile uint8_t scount;
 volatile unsigned long seconds;
 long sleepseconds;
 
-rtc_time rtc;      
-                      
-
 /* Set RADIOSTATS to monitor radio on time (must also be set in the radio driver) */
 #if RF230BB && WEBSERVER
 #define RADIOSTATS 1
@@ -49,13 +46,6 @@ void clock_adjust_seconds(uint8_t howmany) {
 #endif
 }
 
-/*---------------------------------------------------------------------------*/
-char not_leap(void) {      //check for leap year
-  if (!(rtc.year%100))
-    return (char)(rtc.year%400);
-  else
-    return (char)(rtc.year%4);
-}         
           
 /*---------------------------------------------------------------------------*/
 /* These routines increment the second counters.
@@ -63,45 +53,7 @@ char not_leap(void) {      //check for leap year
  */
 static void increment_seconds(void) __attribute__ ((noinline));
 static void increment_seconds(void) {
-   
-  if (++rtc.second==60) {        //keep track of time, date, month, and year
-    rtc.second=0;
-    if (++rtc.minute==60) {
-      rtc.minute=0;
-      if (++rtc.hour==24) {
-	rtc.hour=0;
-	if (++rtc.date==32) {
-	  rtc.month++;
-	  rtc.date=1;
-	}
-	else if (rtc.date==31) {                    
-	  if ((rtc.month==4) || (rtc.month==6) || (rtc.month==9) || (rtc.month==11)) {
-	    rtc.month++;
-	    rtc.date=1;
-	  }
-	}
-	else if (rtc.date==30) {
-	  if(rtc.month==2) {
-	    rtc.month++;
-	    rtc.date=1;
-	  }
-	}              
-	else if (rtc.date==29) {
-	  if((rtc.month==2) && (not_leap())) {
-	    rtc.month++;
-	    rtc.date=1;
-	  }                
-	}                          
-	if (rtc.month==13) {
-	  rtc.month=1;
-	  rtc.year++;
-	}
-      }
-    }
-  }  
-  // old seconds counter
   seconds++;
-
 }
 #if RADIOSTATS
 extern volatile uint8_t rf230_calibrate;

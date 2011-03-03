@@ -407,12 +407,13 @@ PT_THREAD(handle_input(struct httpd_state *s))
   if(s->inputbuf[1] == ISO_space) {
     httpd_strcpy(s->filename, httpd_indexfn);
   } else {
-    uint8_t i;
-    for (i=0;i<sizeof(s->filename)+1;i++) {
-      if (s->inputbuf[i]==ISO_space) break;
-      if (s->inputbuf[i]==ISO_qmark) {
-         s->inputbuf[i]=0;
-         strncpy(httpd_query,&s->inputbuf[i+1],sizeof(httpd_query));
+    {uint8_t i;
+      for (i=0;i<sizeof(s->filename)+1;i++) {
+	if (s->inputbuf[i]==ISO_space) break;
+	if (s->inputbuf[i]==ISO_qmark) {
+	  s->inputbuf[i]=0;
+	  strncpy(httpd_query,&s->inputbuf[i+1],sizeof(httpd_query));
+	}
       }
     }
     s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
