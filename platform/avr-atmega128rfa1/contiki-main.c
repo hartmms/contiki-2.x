@@ -160,22 +160,21 @@ uint8_t get_motor_time() {
   
   eeprom_motor_time = eeprom_read_byte(&motor_time[0]);
   eeprom_check = eeprom_read_byte(&motor_time[1]);
-  
-  if(eeprom_motor_time==~eeprom_check)
+
+  if(eeprom_motor_time==(uint8_t)~eeprom_check)
     return eeprom_motor_time;
- 
-  return 3;
+  
+  return 0;
 }
 
 bool set_motor_time(uint8_t new_motor_time) {
   eeprom_write_byte(&motor_time[0], new_motor_time);
-  eeprom_write_byte(&motor_time[1], ~new_motor_time);
+  eeprom_write_byte(&motor_time[1], (uint8_t)~new_motor_time);
   return true;
 }
 
 bool run_motor() {  
   uint8_t sec = get_motor_time();
-  sec++;
   return true;
 }
 

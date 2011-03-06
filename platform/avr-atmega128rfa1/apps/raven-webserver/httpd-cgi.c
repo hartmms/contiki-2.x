@@ -517,7 +517,6 @@ PT_THREAD(sensor_readings(struct httpd_state *s, char *ptr))
 
 /*---------------------------------------------------------------------------*/	
 
-
 static const char httpd_cat_form[] HTTPD_STRING_ATTR = "\
 <form name=\"feedem\" action=\"cat_feeder.shtml\" method=\"get\">\
 <input type=hidden name=feed value=\"1\">\
@@ -538,16 +537,17 @@ Length of time (in seconds) to operate motor\
 static unsigned short
 make_cat_form(void *p) {
   uint16_t numprinted = 0;
-  uint8_t macptr[8];
-  
-  get_mac_from_eeprom(&macptr[0]);
+  uint8_t mac[8];
+  uint8_t mac_str[25];
+
+  get_mac_from_eeprom(&mac[0]);
+  sprintf(&mac_str[0], "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], mac[6], mac[7]);
+
   numprinted =  httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted,
 			       httpd_cat_form,
-			       //"3",
 			       get_motor_time(),
 			       // need to optimize
-			       sprintf("%x:%x:%x:%x:%x:%x:%x:%x", macptr[0], macptr[1], macptr[2], macptr[3], macptr[4], macptr[5], macptr[6], macptr[7])
-			       //"filler"
+			       mac_str
 			       );
   
   return numprinted;
@@ -569,8 +569,8 @@ static unsigned short
 make_cat_feeder(void *p) {
   uint16_t numprinted = 0;
 
-  uint8_t mac[8], i;
-  char *ptr, hn,ln, *str_addr, sec;
+  uint8_t mac[8], i, hn, ln, sec;
+  uint8_t *ptr, *str_addr;
   
   //printf("Entered make_cat_feeder\n");
   //printf("httpd_query: %s\n", httpd_query);
@@ -581,15 +581,17 @@ make_cat_feeder(void *p) {
   }
 
   if (strncmp (httpd_query,"motor_time",10) == 0) {
-    sec = strchr(httpd_query, '=') + 1;
-    set_motor_time(sec-'0');
-    numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Saved motor time</p>");
+    ptr = strchr(httpd_query, '=') + 1;
+    sec = (uint8_t)*ptr-'0';
+    set_motor_time(sec);
+    numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Saved motor time: %d</p>", sec);
   }
 
   // write new mac
   if (strncmp(httpd_query, "mac_addr", 8) == 0) {
-    str_addr = strchr(httpd_query, '=') + 1;
-    for (ptr=str_addr,i=0;i<8;i++) {
+    ptr = strchr(httpd_query, '=') + 1;
+    
+    for (i=0;i<8;i++) {
       if (*ptr>'9') {
 	hn=(*ptr&0xdf)-'A'+10;
       } else {
@@ -603,9 +605,9 @@ make_cat_feeder(void *p) {
       }
       mac[i] =(hn<<4) | ln;  //optionally mask ln, but if upper bits are set it will be wrong anyway
       ptr++;
-      //watchdog_reboot();
-      //set_mac_addr(mac);
     }
+    //watchdog_reboot();
+    set_mac_addr(mac);
     numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted,  "<p>Saved Mac</p>");
   }
 
