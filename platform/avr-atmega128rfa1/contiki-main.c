@@ -154,7 +154,7 @@ static uint8_t get_channel_from_eeprom() {
 /***************************************************************************************/
 // new stuff for cat-feeder
 uint8_t motor_time[2] EEMEM = {5, ~5};
-uint8_t get_motor_time() {
+uint8_t get_motor_run_length() {
   uint8_t eeprom_motor_time;
   uint8_t eeprom_check;
   
@@ -167,14 +167,9 @@ uint8_t get_motor_time() {
   return 0;
 }
 
-bool set_motor_time(uint8_t new_motor_time) {
+bool set_motor_run_length(uint8_t new_motor_time) {
   eeprom_write_byte(&motor_time[0], new_motor_time);
   eeprom_write_byte(&motor_time[1], (uint8_t)~new_motor_time);
-  return true;
-}
-
-bool run_motor() {  
-  uint8_t sec = get_motor_time();
   return true;
 }
 
@@ -409,7 +404,8 @@ extern char rf230_interrupt_flag, rf230processflag;
 #endif
 
 uint16_t ledtimer;
-
+unsigned long motor_start_time;
+extern seconds;
 /*-------------------------------------------------------------------------*/
 /*------------------------- Main Scheduler loop----------------------------*/
 /*-------------------------------------------------------------------------*/
@@ -425,6 +421,7 @@ extern uint16_t __bss_end;
 
   initialize();
 
+  /* -------------------------------------------------------------------------- */
   /* NB: PORTE1 conflicts with UART0 */
 #if XBEE_PCB_R1
   DDRE |= _BV(PE1);  //set led pin to output
@@ -436,9 +433,27 @@ extern uint16_t __bss_end;
   DDRF |= _BV(PF5);  //set led pin to output
   PORTF &= ~_BV(PF5); //and low to turn led off
 #endif
+  // motor driver 
+  DDRB = 0xff; // PB bus digital output
+  //PB0 = AIN1
+  //PB1 = AIN2
+  //PB2 = APWN
+  //PB3 = ASTBY
+  // standby both ports
+  PORTB = 0xa5;
+  /* ---------------------------------------------------------------------------- */
 
   while(1) {
      process_run();
+
+  /* ---------------------------------------------------------------------------- */
+     if (motor_start_time) {
+       if (motor_start_time + get_motor_run_length() < seconds) {
+	 PORTB &= ~_BV(PB3);
+	 PORTB &= ~_BV(PB4);
+	 motor_start_time = 0;
+       }
+     }
 
     /* Turn off LED after a while */
     if (ledtimer) {
@@ -450,12 +465,16 @@ extern uint16_t __bss_end;
 #elif BLIND_PCB_R0
 	PORTF &= ~_BV(PF5);
 #endif
+  /* ---------------------------------------------------------------------------- */
+
     /* Currently LED was turned on by received ping; ping the other way for testing */
         extern void raven_ping6(void);         
         raven_ping6(); //ping back
       }
     } 
   
+
+
 #if CONFIG_STACK_MONITOR
     if (*(uint16_t *)(&__bss_end+100) != 0x4242) {
       printf_P(PSTR("\nStack Warning, overflow within 100 bytes!\n"));

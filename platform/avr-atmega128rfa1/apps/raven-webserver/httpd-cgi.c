@@ -545,7 +545,7 @@ make_cat_form(void *p) {
 
   numprinted =  httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted,
 			       httpd_cat_form,
-			       get_motor_time(),
+			       get_motor_run_length(),
 			       // need to optimize
 			       mac_str
 			       );
@@ -565,6 +565,7 @@ PT_THREAD(cat_form(struct httpd_state *s, char *ptr))
 
 /*---------------------------------------------------------------------------*/	
 extern mac_address[8];
+extern motor_start_time;
 static unsigned short
 make_cat_feeder(void *p) {
   uint16_t numprinted = 0;
@@ -576,14 +577,16 @@ make_cat_feeder(void *p) {
   //printf("httpd_query: %s\n", httpd_query);
   // feed them selected, so operate motor
   if (strncmp (httpd_query,"feed",4) == 0) {
-    run_motor();
+    PORTB |= _BV(PB3);
+    PORTB |= _BV(PB4);
+    motor_start_time = seconds;
     numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Commenced the feed</p>");
   }
 
   if (strncmp (httpd_query,"motor_time",10) == 0) {
     ptr = strchr(httpd_query, '=') + 1;
     sec = (uint8_t)*ptr-'0';
-    set_motor_time(sec);
+    set_motor_run_length(sec);
     numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Saved motor time: %d</p>", sec);
   }
 

@@ -63,7 +63,6 @@ uint8_t httpd_cgi_sprint_ip6(uip_ip6addr_t addr, char * result);
 bool get_mac_from_eeprom(uint8_t* macptr);
 uint8_t get_motor_time();
 bool set_motor_time(uint8_t new_motor_time);
-bool run_motor();
 bool set_mac_addr(uint8_t* macptr);
 
 
