@@ -52,8 +52,6 @@
 #include "httpd-fs.h"
 #include "httpd-fsdata.h"
 #include "lib/petsciiconv.h"
-#include "dev/clock-avr.h"
-#include "settings.h"
 #include "sensors.h"
 
 #define DEBUGLOGIC 0        //See httpd.c, if 1 must also set it there!
@@ -518,6 +516,8 @@ PT_THREAD(sensor_readings(struct httpd_state *s, char *ptr))
 }
 
 /*---------------------------------------------------------------------------*/	
+
+
 static const char httpd_cat_form[] HTTPD_STRING_ATTR = "\
 <form name=\"feedem\" action=\"cat_feeder.shtml\" method=\"get\">\
 <input type=hidden name=feed value=\"1\">\
@@ -539,12 +539,12 @@ static unsigned short
 make_cat_form(void *p) {
   uint16_t numprinted = 0;
   uint8_t macptr[8];
-
-  settings_get(SETTINGS_KEY_EUI64, 0, (unsigned char*)macptr, 8);
+  
+  get_mac_from_eeprom(&macptr[0]);
   numprinted =  httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted,
 			       httpd_cat_form,
-			       "3",
-			       //settings_get_uint8(SETTINGS_KEY_MOTOR_TIME, 0);
+			       //"3",
+			       get_motor_time(),
 			       // need to optimize
 			       sprintf("%x:%x:%x:%x:%x:%x:%x:%x", macptr[0], macptr[1], macptr[2], macptr[3], macptr[4], macptr[5], macptr[6], macptr[7])
 			       //"filler"
@@ -564,26 +564,25 @@ PT_THREAD(cat_form(struct httpd_state *s, char *ptr))
 }
 
 /*---------------------------------------------------------------------------*/	
+extern mac_address[8];
 static unsigned short
 make_cat_feeder(void *p) {
   uint16_t numprinted = 0;
 
   uint8_t mac[8], i;
-  char *ptr, hn,ln, *str_addr, *min, sec;
+  char *ptr, hn,ln, *str_addr, sec;
   
   //printf("Entered make_cat_feeder\n");
   //printf("httpd_query: %s\n", httpd_query);
   // feed them selected, so operate motor
   if (strncmp (httpd_query,"feed",4) == 0) {
-    //uint8_t sec = settings_get_uint8(SETTINGS_KEY_MOTOR_TIME, 0);
-    //run_motor(sec);
+    run_motor();
     numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Commenced the feed</p>");
   }
 
   if (strncmp (httpd_query,"motor_time",10) == 0) {
     sec = strchr(httpd_query, '=') + 1;
-    //set motor_time
-    //settings_set(SETTINGS_KEY_MOTOR_TIME, *sec-'0', 1);
+    set_motor_time(sec-'0');
     numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, "<p>Saved motor time</p>");
   }
 
@@ -604,7 +603,8 @@ make_cat_feeder(void *p) {
       }
       mac[i] =(hn<<4) | ln;  //optionally mask ln, but if upper bits are set it will be wrong anyway
       ptr++;
-      //settings_set(SETTINGS_KEY_EUI64, mac, 8);
+      //watchdog_reboot();
+      //set_mac_addr(mac);
     }
     numprinted+=snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted,  "<p>Saved Mac</p>");
   }

@@ -130,6 +130,9 @@ uint8_t rf_channel[2] EEMEM = {CHANNEL_802_15_4, ~CHANNEL_802_15_4};
 #else
 uint8_t rf_channel[2] EEMEM = {26, ~26};
 #endif
+
+
+
 static uint8_t get_channel_from_eeprom() {
     uint8_t eeprom_channel;
 	uint8_t eeprom_check;
@@ -148,7 +151,42 @@ static uint8_t get_channel_from_eeprom() {
 #endif
 }
 
-static bool get_mac_from_eeprom(uint8_t* macptr) {
+/***************************************************************************************/
+// new stuff for cat-feeder
+uint8_t motor_time[2] EEMEM = {5, ~5};
+uint8_t get_motor_time() {
+  uint8_t eeprom_motor_time;
+  uint8_t eeprom_check;
+  
+  eeprom_motor_time = eeprom_read_byte(&motor_time[0]);
+  eeprom_check = eeprom_read_byte(&motor_time[1]);
+  
+  if(eeprom_motor_time==~eeprom_check)
+    return eeprom_motor_time;
+ 
+  return 3;
+}
+
+bool set_motor_time(uint8_t new_motor_time) {
+  eeprom_write_byte(&motor_time[0], new_motor_time);
+  eeprom_write_byte(&motor_time[1], ~new_motor_time);
+  return true;
+}
+
+bool run_motor() {  
+  uint8_t sec = get_motor_time();
+  sec++;
+  return true;
+}
+
+bool set_mac_addr(uint8_t* macptr) {
+  eeprom_write_block ((void *)macptr,  &mac_address, 8);
+  return true;
+}
+
+/***************************************************************************************/
+
+bool get_mac_from_eeprom(uint8_t* macptr) {
 	eeprom_read_block ((void *)macptr,  &mac_address, 8);
 	return true;
 }

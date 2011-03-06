@@ -37,6 +37,7 @@
 
 #include "contiki.h"
 #include "httpd.h"
+#include <stdbool.h>
 
 typedef PT_THREAD((* httpd_cgifunction)(struct httpd_state *, char *));
 
