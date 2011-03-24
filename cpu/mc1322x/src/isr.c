@@ -30,7 +30,7 @@
  * This file is part of libmc1322x: see http://mc1322x.devl.org
  * for details. 
  *
- * $Id: isr.c,v 1.5 2010/11/10 22:09:23 maralvira Exp $
+ *
  */
 
 #include <mc1322x.h>
@@ -86,6 +86,9 @@ void irq(void)
 				CRM->STATUSbits.CAL_DONE = 0;
 				cal_isr();
 			}
+		}
+		if(bit_is_set(pending, INT_NUM_ASM)) {
+			if(asm_isr != 0) { asm_isr(); }
 		}
 
 		*INTFRC = 0; /* stop forcing interrupts */

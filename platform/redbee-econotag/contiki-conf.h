@@ -84,7 +84,14 @@
 #define CONTIKI_MACA_RAW_MODE       0
 #define USE_32KHZ_XTAL              0
 
-#define BLOCKING_TX 0
+#define BLOCKING_TX 1
+#define NULLRDC_CONF_802154_AUTOACK_HW 1
+
+#define USE_WDT 0
+
+#ifndef WDT_TIMEOUT
+#define WDT_TIMEOUT 5000 /* watchdog timeout in ms */
+#endif
 
 /* end of mc1322x specific config. */
 

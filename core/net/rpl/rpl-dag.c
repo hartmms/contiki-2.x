@@ -94,8 +94,6 @@ static rpl_of_t * const objective_functions[] = {&RPL_OF};
 #define RPL_DIO_INTERVAL_DOUBLINGS      RPL_CONF_DIO_INTERVAL_DOUBLINGS
 #endif /* !RPL_CONF_DIO_INTERVAL_DOUBLINGS */
 
-#define INITIAL_ETX  NEIGHBOR_INFO_ETX_DIVISOR * 5
-
 /************************************************************************/
 /* Allocate parents from the same static MEMB chunk to reduce memory waste. */
 MEMB(parent_memb, struct rpl_parent, RPL_MAX_PARENTS);
@@ -179,7 +177,6 @@ rpl_set_root(uip_ipaddr_t *dag_id)
   dag->version = version + 1;
   dag->grounded = RPL_GROUNDED;
   dag->mop = RPL_MOP_DEFAULT;
-  dag->rank = ROOT_RANK;
   dag->of = &RPL_OF;
   dag->preferred_parent = NULL;
   dag->dtsn_out = 1; /* Trigger DAOs from the beginning. */
@@ -195,11 +192,16 @@ rpl_set_root(uip_ipaddr_t *dag_id)
   dag->default_lifetime = DEFAULT_RPL_DEF_LIFETIME;
   dag->lifetime_unit = DEFAULT_RPL_LIFETIME_UNIT;
 
+  dag->rank = ROOT_RANK(dag);
+
   dag->of->update_metric_container(dag);
 
   PRINTF("RPL: Node set to be a DAG root with DAG ID ");
   PRINT6ADDR(&dag->dag_id);
   PRINTF("\n");
+
+  ANNOTATE("#A root=%u\n",dag->dag_id.u8[sizeof(dag->dag_id) - 1]);
+
 
   rpl_reset_dio_timer(dag, 1);
 
@@ -305,7 +307,7 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
   memcpy(&p->addr, addr, sizeof(p->addr));
   p->dag = dag;
   p->rank = dio->rank;
-  p->etx = INITIAL_ETX;
+  p->link_metric = INITIAL_LINK_METRIC;
   p->dtsn = 0;
 
   memcpy(&p->mc, &dio->mc, sizeof(p->mc));
@@ -354,6 +356,7 @@ rpl_select_parent(rpl_dag_t *dag)
     rpl_reset_dio_timer(dag, 1);
     PRINTF("RPL: New preferred parent, rank changed from %u to %u\n",
 	   (unsigned)dag->rank, dag->of->calculate_rank(best, 0));
+    RPL_STAT(rpl_stats.parent_switch++);
   }
 
   /* Update the DAG rank, since link-layer information may have changed
@@ -418,7 +421,7 @@ rpl_get_dag(int instance_id)
 rpl_of_t *
 rpl_find_of(rpl_ocp_t ocp)
 {
-  int i;
+  unsigned int i;
 
   for(i = 0;
       i < sizeof(objective_functions) / sizeof(objective_functions[0]); 
@@ -453,8 +456,6 @@ join_dag(uip_ipaddr_t *from, rpl_dio_t *dio)
     return;
   }
   PRINTF("succeeded\n");
-
-  p->etx = INITIAL_ETX; /* The lowest confidence for new parents. */
 
   /* Determine the objective function by using the
      objective code point of the DIO. */
@@ -504,13 +505,16 @@ join_dag(uip_ipaddr_t *from, rpl_dio_t *dio)
   /* copy prefix information into the dag */
   memcpy(&dag->prefix_info, &dio->prefix_info, sizeof(rpl_prefix_t));
 
+  dag->rank = dag->of->calculate_rank(p, dio->rank);
+  dag->min_rank = dag->rank; /* So far this is the lowest rank we know of. */
+
   PRINTF("RPL: Joined DAG with instance ID %u, rank %hu, DAG ID ",
          dio->instance_id, dag->rank);
   PRINT6ADDR(&dag->dag_id);
   PRINTF("\n");
 
-  dag->rank = dag->of->calculate_rank(p, dio->rank);
-  dag->min_rank = dag->rank; /* So far this is the lowest rank we know of. */
+  ANNOTATE("#A join=%u\n",dag->dag_id.u8[sizeof(dag->dag_id) - 1]);
+
 
   dag->default_lifetime = dio->default_lifetime;
   dag->lifetime_unit = dio->lifetime_unit;
@@ -555,7 +559,7 @@ global_repair(uip_ipaddr_t *from, rpl_dag_t *dag, rpl_dio_t *dio)
 int
 rpl_repair_dag(rpl_dag_t *dag)
 {
-  if(dag->rank == ROOT_RANK) {
+  if(dag->rank == ROOT_RANK(dag)) {
     dag->version++;
     dag->dtsn_out = 1;
     rpl_reset_dio_timer(dag, 1);
@@ -673,7 +677,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
   }
 
   if(dio->version > dag->version) {
-    if(dag->rank == ROOT_RANK) {
+    if(dag->rank == ROOT_RANK(dag)) {
       PRINTF("RPL: Root received inconsistent DIO version number\n");
       dag->version = dio->version + 1;
       rpl_reset_dio_timer(dag, 1);
@@ -690,9 +694,13 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 
   if(dio->rank == INFINITE_RANK) {
     rpl_reset_dio_timer(dag, 1);
+  } else if(dio->rank < ROOT_RANK(dag)) {
+    PRINTF("RPL: Ignoring DIO with too low rank: %u\n",
+           (unsigned)dio->rank);
+    return;
   }
 
-  if(dag->rank == ROOT_RANK) {
+  if(dag->rank == ROOT_RANK(dag)) {
     if(dio->rank != INFINITE_RANK) {
       dag->dio_counter++;
     }
@@ -721,7 +729,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
       PRINTF(")\n");
       return;
     }
-    
+
     PRINTF("RPL: New candidate parent with rank %u: ", (unsigned)p->rank);
     PRINT6ADDR(from);
     PRINTF("\n");
@@ -731,7 +739,8 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
   }
   
   /* We have allocated a candidate parent; process the DIO further. */
-  
+
+  memcpy(&p->mc, &dio->mc, sizeof(p->mc));    
   p->rank = dio->rank;
   if(rpl_process_parent_event(dag, p) == 0) {
     /* The candidate parent no longer exists. */
