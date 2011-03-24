@@ -46,7 +46,6 @@
 
 #include "loader/symbols-def.h"
 #include "loader/symtab.h"
-
 #if RF230BB        //radio driver using contiki core mac
 #include "radio/rf230bb/rf230bb.h"
 #include "net/mac/frame802154.h"
@@ -90,7 +89,6 @@
 #endif
 
 #include "net/rime.h"
-
 /* Test rtimers, also for pings, stack monitor, neighbor/route printout and time stamps */
 #define TESTRTIMER 1
 #if TESTRTIMER
@@ -190,7 +188,7 @@ bool set_mac_addr(uint8_t* macptr) {
 
 /***************************************************************************************/
 
-bool get_mac_from_eeprom(uint8_t* macptr) {
+static bool get_mac_from_eeprom(uint8_t* macptr) {
 	eeprom_read_block ((void *)macptr,  &mac_address, 8);
 	return true;
 }
@@ -230,7 +228,7 @@ void initialize(void)
   /* Redirect stdout to second port */
   rs232_redirect_stdout(RS232_PORT_1);
   clock_init();
-  
+
 #if 1
   if(MCUSR & (1<<PORF )) PRINTA("Power-on reset.\n");
   if(MCUSR & (1<<EXTRF)) PRINTA("External reset!\n");
@@ -278,7 +276,6 @@ uint8_t i;
 #if ANNOUNCE_BOOT
   PRINTA("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
 #endif
-
 /* rtimers needed for radio cycling */
   rtimer_init();
 
@@ -433,8 +430,6 @@ extern char rf230_interrupt_flag, rf230processflag;
 #endif
 
 uint16_t ledtimer;
-unsigned long motor_start_time;
-extern seconds;
 /*-------------------------------------------------------------------------*/
 /*------------------------- Main Scheduler loop----------------------------*/
 /*-------------------------------------------------------------------------*/
@@ -444,11 +439,11 @@ main(void)
 
   initialize();
 
-  /* -------------------------------------------------------------------------- */
+
+#if LED_ON_PORTE1
   /* NB: PORTE1 conflicts with UART0 */
-#if XBEE_PCB_R1
-  DDRE |= _BV(PE1);  //set led pin to output
-  PORTE &= ~(PE1); //and low to turn led off
+  DDRE|=(1<<DDE1);  //set led pin to output (Micheal Hatrtman board)
+  PORTE&=~(1<<PE1); //and low to turn led off
 #elif LIGHT_SW_PCB_R1
   DDRF |= _BV(PF0);  //set led pin to output
   PORTF &= ~_BV(PF0); //and low to turn led off
@@ -490,26 +485,11 @@ main(void)
 #endif
   /* ---------------------------------------------------------------------------- */
 
-    /* Turn off LED after a while */
-    if (ledtimer) {
-      if (--ledtimer==0) {
-        PORTE&=~(1<<PE1);
+    /* Currently LED was turned on by received ping; ping the other way for testing */
         extern void raven_ping6(void);         
+ //       raven_ping6(); //ping back
       }
-    } 
-  
-
-
-#if CONFIG_STACK_MONITOR
-    if (*(uint16_t *)(&__bss_end+100) != 0x4242) {
-      printf_P(PSTR("\nStack Warning, overflow within 100 bytes!\n"));
-      if (__bss_end != 0x4242) {
-       __bss_end = 0x4242;
-        printf_P(PSTR("\n!!!!!!!Stack Overflow!!!!!!!!\n"));
-      }
-      *(uint16_t *)(&__bss_end+100) = 0x4242;
     }
-#endif
 
 #if 0
 /* Various entry points for debugging in the AVR Studio simulator.
@@ -528,13 +508,13 @@ main(void)
 /* Clock.c can trigger a periodic PLL calibration in the RF230BB driver.
  * This can show when that happens.
  */
-    extern uint8_t rf230_calibrated;
+extern uint8_t rf230_calibrated;
     if (rf230_calibrated) {
       PRINTA("\nRF230 calibrated!\n");
       rf230_calibrated=0;
     }
-#endif
-
+#endif    
+  
 #if TESTRTIMER
 /* Timeout can be increased up to 8 seconds maximum.
  * A one second cycle is convenient for triggering the various debug printouts.
@@ -544,22 +524,20 @@ main(void)
     if (rtimerflag) {
       rtimer_set(&rt, RTIMER_NOW()+ RTIMER_ARCH_SECOND*1UL, 1,(void *) rtimercycle, NULL);
       rtimerflag=0;
-
 #if STAMPS
-if ((rtime%STAMPS)==0) {
+      if ((rtime%STAMPS)==0) {
   PRINTA("%us ",rtime);
 }
+
 #endif
       rtime+=1;
-
 #if PINGS
 extern void raven_ping6(void); 
 if ((rtime%PINGS)==1) {
   PRINTA("**Ping\n");
-  raven_ping6();
-}
+        raven_ping6();
+      }
 #endif
-
 #if ROUTES
 if ((rtime%ROUTES)==2) {
       
@@ -600,9 +578,8 @@ extern uip_ds6_netif_t uip_ds6_if;
   }
   if (j) PRINTA("  <none>");
   PRINTA("\n---------\n");
-}
+    }
 #endif
-
 #if STACKMONITOR
 if ((rtime%STACKMONITOR)==3) {
   extern uint16_t __bss_end;
