@@ -188,7 +188,7 @@ bool set_mac_addr(uint8_t* macptr) {
 
 /***************************************************************************************/
 
-static bool get_mac_from_eeprom(uint8_t* macptr) {
+bool get_mac_from_eeprom(uint8_t* macptr) {
 	eeprom_read_block ((void *)macptr,  &mac_address, 8);
 	return true;
 }
@@ -430,6 +430,8 @@ extern char rf230_interrupt_flag, rf230processflag;
 #endif
 
 uint16_t ledtimer;
+unsigned long motor_start_time;
+extern seconds;
 /*-------------------------------------------------------------------------*/
 /*------------------------- Main Scheduler loop----------------------------*/
 /*-------------------------------------------------------------------------*/

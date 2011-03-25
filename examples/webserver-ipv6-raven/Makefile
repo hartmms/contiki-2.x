@@ -18,8 +18,11 @@ all:
 #can't just rename, webserver6 may be open in debugger
 	@if [ $(OUTFILE) != "webserver6" ]; then cp webserver6.elf $(OUTFILE).elf;fi
 	avr-objcopy -O ihex -R .eeprom -R .fuse -R .signature $(OUTFILE).elf $(OUTFILE).hex
+	avr-objcopy -O ihex -j .eeprom --set-section-flags=.eeprom="alloc,load" --change-section-lma .eeprom=0 $(OUTFILE).elf $(OUTFILE)_eeprom.hex
 #	avr-size -C --mcu=atmega1284p $(OUTFILE).elf
 	avr-size -C --mcu=$(MCU) $(OUTFILE).elf
+prog:
+	avrdude -p m1284p -c dragon_jtag -P usb -U flash:w:$(OUTFILE).hex:i -U eeprom:w:$(OUTFILE)_eeprom.hex:i
 
 clean:
 	${MAKE} -f Makefile.webserver TARGET=$(TARGET) clean
